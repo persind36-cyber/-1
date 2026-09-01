@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FitFlow</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Segoe UI",Arial,sans-serif}
+body{background:#f7f5f2;color:#292735;overflow-x:hidden}
+body:before,body:after{content:"";position:fixed;border-radius:50%;filter:blur(85px);opacity:.38;z-index:-1;pointer-events:none}
+body:before{width:420px;height:420px;left:-150px;top:30px;background:#d8d0ff}
+body:after{width:360px;height:360px;right:-120px;bottom:20px;background:#e5ddff}
+
+.app{min-height:100vh;display:flex}
+.sidebar{width:230px;min-height:100vh;background:rgba(255,255,255,.84);backdrop-filter:blur(14px);padding:24px 16px;box-shadow:8px 0 30px rgba(56,48,91,.07);flex-shrink:0}
+.logo{font-size:26px;font-weight:800;margin:4px 10px 28px}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav button{border:0;background:transparent;border-radius:14px;padding:13px 15px;text-align:left;font-size:15px;color:#66616f;cursor:pointer}
+.nav button:hover{background:#f0ecff}
+.nav button.active{background:#e7e0ff;color:#4e3b9c;font-weight:700}
+
+.content{width:calc(100% - 230px);padding:42px 42px 50px}
+.topline{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+h1{margin:0;font-size:34px;letter-spacing:-.5px}
+.subtitle{color:#7b7682;font-size:14px;margin-top:5px}
+
+.sleep-layout{display:grid;grid-template-columns:minmax(520px,1fr) 350px;gap:22px;align-items:start}
+.card{background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.9);border-radius:24px;box-shadow:0 14px 34px rgba(54,45,80,.08);padding:24px}
+
+.calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.calendar-head h2{text-transform:capitalize;font-size:21px;margin:0}
+.month-btn{width:40px;height:40px;border:0;border-radius:13px;background:#eee9ff;color:#5946a6;font-size:26px;cursor:pointer}
+.month-btn:hover{background:#e4dcff}
+
+.weekdays,.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.weekdays{margin-bottom:8px}
+.weekdays span{text-align:center;font-size:12px;font-weight:700;color:#8a8590;padding:5px}
+.day{position:relative;min-height:70px;border:2px solid transparent;border-radius:16px;background:#faf9fc;color:#4a4652;font-weight:700;font-size:15px;cursor:pointer}
+.day:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(50,45,70,.08)}
+.day.empty{background:transparent;border-color:transparent;cursor:default;box-shadow:none}
+.day.today{border-color:#7564d8}
+.day.selected{box-shadow:0 0 0 3px #302b3a inset}
+.day.good{background:#b9f5d0;border-color:#12a653;color:#064d27}
+.day.mid{background:#ffd78c;border-color:#e58b00;color:#6e3c00}
+.day.bad{background:#ffb9bd;border-color:#e3262e;color:#761017}
+.mark{position:absolute;right:7px;bottom:5px;font-size:13px;font-weight:900}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;color:#706b77;font-size:12px}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot.good{background:#12a653}.dot.mid{background:#e58b00}.dot.bad{background:#e3262e}
+
+.right-column{display:flex;flex-direction:column;gap:22px}
+.section-title{display:flex;gap:9px;align-items:center;margin-bottom:10px}
+.section-title span{font-size:19px}.section-title h3{margin:0;font-size:18px}
+.rec-item{padding:13px 0;border-bottom:1px solid #eeeaf2}
+.rec-item:last-child{border-bottom:0}
+.rec-label{font-size:12px;color:#817c88}
+.rec-value{font-weight:700;line-height:1.4;margin-top:4px}
+
+.empty{text-align:center;padding:15px 5px 5px}
+.empty-icon{font-size:34px}
+.empty h3{margin:10px 0 6px}
+.empty p{font-size:14px;line-height:1.5;color:#7b7682;margin:0}
+
+.hidden{display:none!important}
+.selected-date{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.selected-date span{font-size:13px;color:#817c88}.selected-date strong{font-size:18px}
+label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}
+input,select{width:100%;padding:12px;border:1px solid #ddd9e3;border-radius:12px;background:white;color:#393540;font-size:14px;outline:none}
+input:focus,select:focus{border-color:#a89bff;box-shadow:0 0 0 3px rgba(168,155,255,.16)}
+.result{margin-top:14px;padding:12px;border-radius:13px;font-weight:700}
+.result.good{background:#b9f5d0;color:#064d27;border:1px solid #12a653}
+.result.mid{background:#ffd78c;color:#6e3c00;border:1px solid #e58b00}
+.result.bad{background:#ffb9bd;color:#761017;border:1px solid #e3262e}
+.form-actions{display:flex;gap:9px;margin-top:15px}
+.form-actions button{flex:1;padding:12px;border-radius:12px;font-weight:700;cursor:pointer}
+.primary{border:0;background:#a89bff;color:#fff}.primary:hover{background:#9788f5}
+.danger{border:1px solid #e3262e;background:#fff;color:#c5161d}
+
+@media(max-width:900px){
+.app{display:block}.sidebar{min-height:auto;width:100%;padding:13px 15px;display:flex;align-items:center;gap:8px;overflow-x:auto}.logo{margin:0 10px 0 0}.nav{flex-direction:row;gap:5px}.nav button{white-space:nowrap;padding:10px 12px}.content{width:100%;padding:24px 18px}.sleep-layout{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+.content{padding:18px 12px}.card{padding:15px;border-radius:20px}.weekdays,.calendar{gap:4px}.day{min-height:48px;border-radius:11px;font-size:13px}.sleep-layout{display:flex;flex-direction:column}.right-column{width:100%}
+}
+</style>
+
+<style id="fitflow-workouts-css">
+.page-section{width:100%}
+.workout-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+.workout-main,.workout-side{min-width:0}
+.workout-type-switch{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.workout-type,.soft-btn,.icon-btn,.primary-btn,.danger-btn{border:0;border-radius:14px;padding:12px 16px;cursor:pointer;font:inherit}
+.workout-type{background:#eee9ff;color:#554a78;font-weight:700}
+.workout-type.active{background:#a892ff;color:#fff;box-shadow:0 7px 18px rgba(100,80,190,.16)}
+.workout-date-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid rgba(0,0,0,.07)}
+.workout-date-row>div{text-align:center;min-width:0}.workout-date-row strong{display:block;font-size:17px}.icon-btn{width:42px;height:42px;padding:0;background:#f1edff;color:#64538f;font-size:24px}
+.soft-btn{background:#ebe5ff;color:#5b4a84;font-weight:700}.primary-btn{background:#9a82ff;color:#fff;font-weight:700}.danger-btn{background:#fff0f1;color:#c5161d}
+.workout-summary{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.summary-pill{background:#f5f1ff;border-radius:14px;padding:10px 14px;font-size:14px;font-weight:700}
+.exercise-list{display:flex;flex-direction:column;gap:10px}.exercise{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;padding:15px;border-radius:17px;background:#faf9ff;border:1px solid rgba(120,100,180,.1);transition:.15s}.exercise:hover{transform:translateY(-1px)}
+.exercise.done{background:#eaffef;border-color:#65cf88}.exercise.partial{background:#fff5df;border-color:#ffc765}.exercise-check{width:25px;height:25px;accent-color:#48b86b}.exercise-title{font-weight:700}.exercise-meta{font-size:13px;opacity:.62;margin-top:3px}.exercise-actions{display:flex;gap:7px}.exercise-actions button{border:0;background:transparent;cursor:pointer;font-size:15px;padding:5px;border-radius:8px}.exercise-actions button:hover{background:#eee9ff}
+.add-exercise{margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,.07)}.add-exercise h3{margin:0 0 10px}.form-grid{display:grid;grid-template-columns:2fr 1fr 1.4fr auto;gap:9px}.form-grid input{min-width:0;border:1px solid #ded9ec;border-radius:12px;padding:12px;background:#fff;font:inherit}.form-grid input:focus{outline:none;border-color:#a89bff;box-shadow:0 0 0 3px rgba(168,155,255,.15)}
+.edit-panel{margin-top:12px;padding:14px;border-radius:16px;background:#f8f5ff;border:1px solid #e7e0ff}.edit-grid{display:grid;grid-template-columns:2fr 1fr 1.4fr auto auto;gap:8px}.edit-grid input{min-width:0;border:1px solid #ded9ec;border-radius:11px;padding:10px;font:inherit;background:#fff}
+.workout-side{display:flex;flex-direction:column;gap:22px}.recommendation-text{line-height:1.6}.mini-history{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:16px 0}.history-day{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#eee;position:relative}.history-day.green{background:#35c86b;color:#fff}.history-day.orange{background:#ffad27;color:#fff}.history-day.red{background:#f04444;color:#fff}.history-day.empty{background:#f1eff6;color:#777}.history-day.today{box-shadow:0 0 0 3px #6d5bd0 inset}.history-day span{position:absolute;bottom:2px;font-size:8px;opacity:.9}.workout-legend{display:flex;flex-direction:column;gap:8px;font-size:12px;color:#706b77}.workout-legend span{display:flex;align-items:center;gap:6px}.workout-dot{width:10px;height:10px;border-radius:50%;display:inline-block}.workout-dot.green{background:#35c86b}.workout-dot.orange{background:#ffad27}.workout-dot.red{background:#f04444}
+@media(max-width:900px){.workout-layout{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr 1fr}.form-grid .primary-btn{grid-column:1/-1}.edit-grid{grid-template-columns:1fr 1fr}.edit-grid button:last-child{grid-column:auto}.page-section{padding:24px 16px}}
+@media(max-width:520px){.workout-type-switch{grid-template-columns:1fr}.form-grid,.edit-grid{grid-template-columns:1fr}.form-grid .primary-btn{grid-column:auto}}
+
+/* Финансовый статус: понятные эмодзи вместо тусклых цветных квадратов */
+.finance-status{
+  width:9%!important;
+  min-width:72px;
+  padding:8px 6px!important;
+  text-align:center!important;
+  font-size:28px!important;
+  line-height:1!important;
+  white-space:nowrap;
+}
+.finance-status::after{display:none!important;content:none!important}
+@media(max-width:650px){
+  .finance-status{min-width:64px;font-size:24px!important}
+}
+
+</style>
+
+
+<style id="fitflow-finance-tweaks">
+.finance-status{
+  width:64px!important;
+  min-width:64px!important;
+  text-align:center!important;
+  vertical-align:middle!important;
+  padding:6px 4px!important;
+  font-size:18px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.finance-status::after{display:none!important;content:none!important}
+@media(max-width:650px){
+  .finance-status{width:52px!important;min-width:52px!important;font-size:16px!important}
+}
+</style>
+
+
+<style id="fitflow-finance-column-spacing">
+.finance-table{width:100%!important;min-width:900px!important;table-layout:fixed!important}
+.finance-table th,.finance-table td{vertical-align:middle}
+.finance-table th:nth-child(1),.finance-table td:nth-child(1){width:76px}
+.finance-table th:nth-child(2),.finance-table td:nth-child(2){width:155px;padding-right:22px!important}
+.finance-table th:nth-child(3),.finance-table td:nth-child(3){width:205px;padding-left:28px!important}
+.finance-table th:nth-child(4),.finance-table td:nth-child(4){width:220px}
+.finance-table th:nth-child(5),.finance-table td:nth-child(5){width:145px}
+.finance-table th:nth-child(6),.finance-table td:nth-child(6){width:165px}
+.finance-table .finance-date{font-weight:600;white-space:nowrap}
+.finance-table .finance-available{white-space:nowrap}
+@media(max-width:900px){.finance-table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch}.finance-table{min-width:900px!important}}
+</style>
+
+<style id="fitflow-settings-css">
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.settings-card{min-height:0}.settings-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 0;border-bottom:1px solid #eeeaf2}.settings-row:last-child{border-bottom:0}.settings-label{font-weight:700}.settings-desc{font-size:12px;color:#77727f;margin-top:4px;line-height:1.4}.settings-control{min-width:180px}.settings-control select{width:100%}.theme-toggle{position:relative;width:54px;height:30px;border:0;border-radius:99px;background:#d8d3df;cursor:pointer;padding:0;transition:.2s}.theme-toggle:after{content:"";position:absolute;width:24px;height:24px;top:3px;left:3px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:.2s}.theme-toggle.on{background:#8f78ef}.theme-toggle.on:after{left:27px}
+body.dark{background:#17151d;color:#eeeaf4}body.dark:before{background:#493d78}body.dark:after{background:#352c5d}body.dark .sidebar{background:rgba(31,28,39,.9);box-shadow:8px 0 30px rgba(0,0,0,.25)}body.dark .nav button{color:#bdb7c8}body.dark .nav button:hover{background:#2b2637}body.dark .nav button.active{background:#3a315b;color:#d9d0ff}body.dark .card,body.dark .finance-stat{background:rgba(35,32,44,.94);border-color:#3b3547;box-shadow:0 14px 34px rgba(0,0,0,.22)}body.dark .muted,body.dark .subtitle,body.dark .settings-desc,body.dark .rec-label{color:#aaa4b2}body.dark input,body.dark select,body.dark .form-grid input,body.dark .edit-grid input,body.dark .capital-form .money-input input{background:#211e28;color:#eeeaf4;border-color:#484153}body.dark .finance-table th{background:#26222e;color:#aaa4b2}body.dark .finance-table th,body.dark .finance-table td{border-bottom-color:#3a3543}body.dark .exercise{background:#211e29;border-color:#3b3547}body.dark .exercise.done{background:#193624}body.dark .exercise.partial{background:#3c311e}body.dark .edit-panel{background:#29233a;border-color:#443a60}body.dark .summary-pill{background:#2b253b}body.dark .workout-type,.workout-type.active{border-color:transparent}body.dark .workout-type{background:#2b2638;color:#c9c0dc}body.dark .icon-btn,.body.dark .soft-btn{background:#2b2638;color:#c9c0dc}body.dark .finance-row-today td,body.dark .finance-row-over td,body.dark .finance-row-under td{background:transparent!important}body.dark .day{background:#24212b;color:#d9d3df}body.dark .day.empty{background:transparent}body.dark .weekdays span{color:#aaa4b2}body.dark .settings-row{border-bottom-color:#3a3543}body.dark .danger{background:#251b1d}body.dark .danger-btn{background:#2b1f22;color:#ff9da2}body.dark .finance-spent{background:#211e28;color:#eeeaf4;border-color:#484153}
+@media(max-width:700px){.settings-grid{grid-template-columns:1fr}.settings-row{align-items:flex-start;flex-direction:column}.settings-control{width:100%;min-width:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">FitFlow</div>
+  <nav class="nav">
+    <button class="nav-btn" data-page="home">🏠 Главная</button>
+    <button class="nav-btn active" data-page="sleep">😴 Сон</button>
+    <button class="nav-btn" data-page="workouts">💪 Тренировки</button>
+    <button class="nav-btn" data-page="finance">💰 Финансы</button>
+    <button class="nav-btn" data-page="settings">⚙️ Настройки</button>
+</nav>
+</aside>
+
+<main class="content">
+<section id="sleep" class="page-section">
+  <div class="topline">
+    <div><h1>Сон</h1><div class="subtitle">Следи за режимом и качеством отдыха</div></div>
+  </div>
+
+  <div class="sleep-layout">
+    <section class="card">
+      <div class="calendar-head">
+        <button class="month-btn" id="prev">‹</button>
+        <h2 id="monthTitle"></h2>
+        <button class="month-btn" id="next">›</button>
+      </div>
+      <div class="weekdays">
+        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+      </div>
+      <div id="calendar" class="calendar"></div>
+      <div class="legend">
+        <span><i class="dot good"></i> <span data-i18n="good">Хороший</span></span>
+        <span><i class="dot mid"></i> <span data-i18n="medium">Средний</span></span>
+        <span><i class="dot bad"></i> <span data-i18n="insufficient">Недостаточный</span></span>
+      </div>
+    </section>
+
+    <aside class="right-column">
+      <section class="card">
+        <div class="section-title"><span>💡</span><h3>Рекомендации</h3></div>
+        <div id="recommendations"></div>
+      </section>
+
+      <section class="card">
+        <div id="empty" class="empty">
+          <div class="empty-icon">🌙</div>
+          <h3>Выбери день</h3>
+          <p>Нажми на дату в календаре, чтобы посмотреть или записать сон.</p>
+        </div>
+
+        <div id="form" class="hidden">
+          <div class="selected-date"><span>Сон за</span><strong id="selectedDate"></strong></div>
+          <label for="start">Лег спать</label>
+          <input id="start" type="time">
+          <label for="end">Проснулся</label>
+          <input id="end" type="time">
+          <label for="gender">Пол</label>
+          <select id="gender"><option value="male">Мужчина</option><option value="female">Женщина</option></select>
+          <div id="result" class="result hidden"></div>
+          <div class="form-actions">
+            <button class="primary" id="save">Сохранить</button>
+            <button class="danger" id="remove">Удалить</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+
+</section>
+
+<section id="home" class="page-section" hidden>
+  <div class="section-header"><div><div class="eyebrow">FITFLOW</div><h2>Главная</h2><p class="muted">Рекомендации на сегодня.</p></div></div>
+  <div class="card"><h3>☀️ Сегодня</h3><p class="recommendation-text">Здесь будут рекомендации по сну, тренировкам и режиму дня.</p></div>
+</section>
+
+<section id="finance" class="page-section" hidden>
+  <div class="section-header">
+    <div><h2>Финансы</h2><p class="muted">Распредели бюджет по дням и контролируй расходы.</p></div>
+  </div>
+
+  <div class="finance-layout">
+    <div class="finance-main">
+      <div class="card finance-setup">
+        <div class="section-title"><span>💰</span><h3>Бюджет на период</h3></div>
+        <p class="muted">Укажи сумму и период — дневной лимит и таблица посчитаются автоматически.</p>
+        <div class="finance-form-grid">
+          <div><label for="financeBudget">Бюджет</label><div class="money-input"><input id="financeBudget" type="number" min="0" step="0.01" placeholder="1500"><span id="financeCurrencyMark">₾</span></div></div>
+          <div><label for="financeStart">С</label><input id="financeStart" type="date"></div>
+          <div><label for="financeEnd">По</label><input id="financeEnd" type="date"></div>
+          <button class="primary-btn finance-generate" id="financeGenerate" type="button">Рассчитать</button>
+        </div>
+        <div id="financeError" class="finance-error" hidden></div>
+      </div>
+
+      <div class="card finance-table-card">
+        <div class="section-title"><span>📋</span><h3>Дневной бюджет</h3></div>
+        <p class="muted small">Если потратил меньше лимита — остаток автоматически переходит на следующий день. Если больше — разница уменьшит лимит следующего дня.</p>
+        <div class="finance-table-wrap">
+          <table class="finance-table">
+            <thead><tr><th class="finance-status-head">Статус</th><th>Дата</th><th>Можно потратить</th><th>Потрачено</th><th>Перенос</th><th>Осталось</th></tr></thead>
+            <tbody id="financeRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="finance-side">
+      <div class="card recommendation">
+        <div class="section-title"><span>💡</span><h3>Рекомендации</h3></div>
+        <div id="financeRecommendations"></div>
+      </div>
+      <div class="card">
+        <div class="section-title"><span>📌</span><h3>Как это работает</h3></div>
+        <p class="muted small" id="financeExample1">Например, сегодня доступно 75 ₾, а потратил 60 ₾. Оставшиеся 15 ₾ добавятся к лимиту завтра.</p>
+        <p class="muted small" id="financeExample2">Если потратил 90 ₾, то завтра доступный лимит уменьшится на 15 ₾.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section id="settings" class="page-section" hidden>
+  <div class="section-header"><div><h2 data-i18n="settingsTitle">Настройки</h2><p class="muted" data-i18n="settingsSubtitle">Настройки приложения.</p></div></div>
+  <div class="settings-grid">
+    <div class="card settings-card">
+      <div class="section-title"><span>🌐</span><h3 data-i18n="languageTitle">Язык</h3></div>
+      <div class="settings-row">
+        <div><div class="settings-label" data-i18n="languageLabel">Язык интерфейса</div><div class="settings-desc" data-i18n="languageDesc">Выбери язык для всего сайта.</div></div>
+        <div class="settings-control"><select id="appLanguage"><option value="ru">Русский</option><option value="en">English</option></select></div>
+      </div>
+    </div>
+    <div class="card settings-card">
+      <div class="section-title"><span>🌙</span><h3 data-i18n="themeTitle">Тема</h3></div>
+      <div class="settings-row">
+        <div><div class="settings-label" data-i18n="darkThemeLabel">Тёмная тема</div><div class="settings-desc" data-i18n="darkThemeDesc">Переключает весь интерфейс на тёмную тему.</div></div>
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Тёмная тема"></button>
+      </div>
+    </div>
+    <div class="card settings-card">
+      <div class="section-title"><span>💱</span><h3 data-i18n="currencyTitle">Валюта</h3></div>
+      <div class="settings-row">
+        <div><div class="settings-label" data-i18n="currencyLabel">Основная валюта</div><div class="settings-desc" data-i18n="currencyDesc">Используется в разделе «Финансы».</div></div>
+        <div class="settings-control"><select id="appCurrency"><option value="GEL">₾ — лари</option><option value="USD">$ — доллар</option></select></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="workouts" class="page-section" hidden>
+  <div class="section-header">
+    <div><div class="eyebrow" id="workoutEyebrow">АКТИВНОСТЬ</div><h2>Тренировки</h2><p class="muted">Выбери формат и выполни план на нужный день.</p></div>
+    <button class="soft-btn" id="workoutTodayBtn">Сегодня</button>
+  </div>
+  <div class="workout-layout">
+    <div class="card workout-main">
+      <div class="workout-type-switch">
+        <button class="workout-type active" data-workout-type="home">🏠 Тренировка дома</button>
+        <button class="workout-type" data-workout-type="gym">🏋️ Тренировка в зале</button>
+      </div>
+      <div class="workout-date-row">
+        <button class="icon-btn" id="workoutPrev" type="button">‹</button>
+        <div><strong id="workoutDateLabel"></strong><span class="muted" id="workoutDateSub"></span></div>
+        <button class="icon-btn" id="workoutNext" type="button">›</button>
+      </div>
+      <div class="workout-summary" id="workoutSummary"></div>
+      <div class="exercise-list" id="exerciseList"></div>
+      <div class="add-exercise">
+        <h3>➕ Добавить упражнение</h3>
+        <div class="form-grid">
+          <input id="exerciseName" placeholder="Например, Планка">
+          <input id="exerciseSets" type="number" min="1" value="3" placeholder="Подходы">
+          <input id="exerciseReps" placeholder="Повторы / время">
+          <button class="primary-btn" id="addExerciseBtn" type="button">Добавить</button>
+        </div>
+        <div id="editPanel" class="edit-panel" hidden></div>
+      </div>
+    </div>
+    <aside class="workout-side">
+      <div class="card"><h3>💡 План на сегодня</h3><p id="workoutRecommendation" class="recommendation-text"></p></div>
+      <div class="card"><h3>📅 Последние 7 дней</h3><div class="mini-history" id="workoutHistory"></div><div class="workout-legend">
+        <span><i class="workout-dot green"></i> Выполнено</span><span><i class="workout-dot orange"></i> Частично</span><span><i class="workout-dot red"></i> Пропущено</span><span><i class="workout-dot" style="background:#eee"></i> Нет плана</span>
+      </div></div>
+    </aside>
+  </div>
+</section>
+
+
+<script id="fitflow-settings-core">
+(function(){
+  const STORAGE='fitflow_settings_v1';
+  const defaults={lang:'ru',theme:'light',currency:'GEL'};
+  let saved={};try{saved=JSON.parse(localStorage.getItem(STORAGE)||'{}')||{}}catch(e){}
+  let financeLegacy=null;try{financeLegacy=JSON.parse(localStorage.getItem('fitflow_finance_v2')||'null')}catch(e){}
+  if(!Object.prototype.hasOwnProperty.call(saved,'currency') && financeLegacy?.currency) saved.currency=financeLegacy.currency;
+  window.fitflowSettings={...defaults,...saved};
+  window.fitflowSaveSettings=function(){try{localStorage.setItem(STORAGE,JSON.stringify(window.fitflowSettings))}catch(e){}}
+  const dict={
+    ru:{settingsTitle:'Настройки',settingsSubtitle:'Настройки приложения.',languageTitle:'Язык',languageLabel:'Язык интерфейса',languageDesc:'Выбери язык для всего сайта.',themeTitle:'Тема',darkThemeLabel:'Тёмная тема',darkThemeDesc:'Переключает весь интерфейс на тёмную тему.',currencyTitle:'Валюта',currencyLabel:'Основная валюта',currencyDesc:'Используется в разделе «Финансы».',home:'🏠 Главная',sleep:'😴 Сон',workouts:'💪 Тренировки',finance:'💰 Финансы',settings:'⚙️ Настройки',sleepTitle:'Сон',sleepSubtitle:'Следи за режимом и качеством отдыха',recommendations:'Рекомендации',chooseDay:'Выбери день',chooseDayDesc:'Нажми на дату в календаре, чтобы посмотреть или записать сон.',sleepFor:'Сон за',wentToBed:'Лег спать',wokeUp:'Проснулся',gender:'Пол',male:'Мужчина',female:'Женщина',save:'Сохранить',remove:'Удалить',good:'Хороший',medium:'Средний',insufficient:'Недостаточный',weekdayMon:'Пн',weekdayTue:'Вт',weekdayWed:'Ср',weekdayThu:'Чт',weekdayFri:'Пт',weekdaySat:'Сб',weekdaySun:'Вс',delete:'Удалить',edit:'Изменить',cancel:'Отмена',todayBtn:'Сегодня',budget:'Бюджет',from:'С',to:'По',homeTitle:'Главная',homeSubtitle:'Рекомендации на сегодня.',today:'Сегодня',todayText:'Здесь будут рекомендации по сну, тренировкам и режиму дня.',activity:'Тренировки',activitySubtitle:'Выбери формат и выполни план на нужный день.',homeWorkout:'🏠 Тренировка дома',gymWorkout:'🏋️ Тренировка в зале',addExercise:'➕ Добавить упражнение',add:'Добавить',planToday:'💡 План на сегодня',last7:'📅 Последние 7 дней',done:'Выполнено',partial:'Частично',missed:'Пропущено',noPlan:'Нет плана',financeTitle:'Финансы',financeSubtitle:'Распредели бюджет по дням и контролируй расходы.',budgetPeriod:'Бюджет на период',budgetHelp:'Укажи сумму и период — дневной лимит и таблица посчитаются автоматически.',budget:'Бюджет',from:'С',to:'По',calculate:'Рассчитать',dailyBudget:'Дневной бюджет',dailyHelp:'Если потратил меньше лимита — остаток автоматически переходит на следующий день. Если больше — разница уменьшит лимит следующего дня.',status:'Статус',date:'Дата',available:'Можно потратить',spent:'Потрачено',carry:'Перенос',remaining:'Осталось',howWorks:'Как это работает',workoutPlan:'План на сегодня',workoutHistory:'Последние 7 дней',addExerciseLabel:'Добавить упражнение',workoutHome:'Тренировка дома',workoutGym:'Тренировка в зале',todayRecommendations:'Здесь будут рекомендации по сну, тренировкам и режиму дня.',noExercises:'План пока пуст',addFirstExercise:'Добавь первое упражнение ниже.',recommendationEmpty:'Добавь упражнения в план на этот день.',recommendationDone:'Отличная работа! План выполнен. Не забудь восстановиться.',recommendationStart:'Сегодня можно начать с первого упражнения. Главное — спокойно пройти весь план.',recommendationProgress:'Хороший темп: осталось выполнить',exercise:'упражнение',exercises:'упражнения',set:'подход',sets:'подхода',homeLabel:'Дом',gymLabel:'Зал',completed:'выполнено',planLabel:'План',activityEyebrow:'АКТИВНОСТЬ',setsPlaceholder:'Подходы',repsPlaceholder:'Повторы / время',planCompleted:'План выполнен',example1:'Например, сегодня доступно 75, а потратил 60. Оставшиеся 15 добавятся к лимиту завтра.',example2:'Если потратил 90, то завтра доступный лимит уменьшится на 15.'},
+    en:{settingsTitle:'Settings',settingsSubtitle:'Application settings.',languageTitle:'Language',languageLabel:'Interface language',languageDesc:'Choose the language for the entire site.',themeTitle:'Theme',darkThemeLabel:'Dark theme',darkThemeDesc:'Switches the entire interface to dark mode.',currencyTitle:'Currency',currencyLabel:'Main currency',currencyDesc:'Used in the “Finance” section.',home:'🏠 Home',sleep:'😴 Sleep',workouts:'💪 Workouts',finance:'💰 Finance',settings:'⚙️ Settings',sleepTitle:'Sleep',sleepSubtitle:'Track your sleep schedule and rest quality',recommendations:'Recommendations',chooseDay:'Choose a day',chooseDayDesc:'Tap a date in the calendar to view or record sleep.',sleepFor:'Sleep for',wentToBed:'Went to bed',wokeUp:'Woke up',gender:'Gender',male:'Male',female:'Female',save:'Save',remove:'Delete',good:'Good',medium:'Average',insufficient:'Insufficient',weekdayMon:'Mon',weekdayTue:'Tue',weekdayWed:'Wed',weekdayThu:'Thu',weekdayFri:'Fri',weekdaySat:'Sat',weekdaySun:'Sun',delete:'Delete',edit:'Edit',cancel:'Cancel',todayBtn:'Today',budget:'Budget',from:'From',to:'To',homeTitle:'Home',homeSubtitle:'Recommendations for today.',today:'Today',todayText:'Here you will see recommendations for sleep, workouts and daily routine.',activity:'Workouts',activitySubtitle:'Choose a format and complete the plan for the selected day.',homeWorkout:'🏠 Home workout',gymWorkout:'🏋️ Gym workout',addExercise:'➕ Add exercise',add:'Add',planToday:'💡 Today’s plan',last7:'📅 Last 7 days',done:'Completed',partial:'Partial',missed:'Missed',noPlan:'No plan',financeTitle:'Finance',financeSubtitle:'Distribute your budget by day and track spending.',budgetPeriod:'Budget for period',budgetHelp:'Enter an amount and period — the daily limit and table will be calculated automatically.',budget:'Budget',from:'From',to:'To',calculate:'Calculate',dailyBudget:'Daily budget',dailyHelp:'If you spend less than the limit, the remainder moves to the next day. If you spend more, the difference reduces the next day’s limit.',status:'Status',date:'Date',available:'Available to spend',spent:'Spent',carry:'Carryover',remaining:'Remaining',howWorks:'How it works',workoutPlan:'Today’s plan',workoutHistory:'Last 7 days',addExerciseLabel:'Add exercise',workoutHome:'Home workout',workoutGym:'Gym workout',todayRecommendations:'Here you will see recommendations for sleep, workouts and daily routine.',noExercises:'Plan is empty',addFirstExercise:'Add your first exercise below.',recommendationEmpty:'Add exercises to the plan for this day.',recommendationDone:'Great job! Plan completed. Remember to recover.',recommendationStart:'You can start with the first exercise today. The key is to calmly complete the plan.',recommendationProgress:'Good pace: you have',exercise:'exercise',exercises:'exercises',set:'set',sets:'sets',homeLabel:'Home',gymLabel:'Gym',completed:'completed',planLabel:'Plan',activityEyebrow:'ACTIVITY',setsPlaceholder:'Sets',repsPlaceholder:'Reps / time',planCompleted:'Plan completed',example1:'For example, if 75 is available today and you spend 60, the remaining 15 is added to tomorrow’s limit.',example2:'If you spend 90, tomorrow’s available limit is reduced by 15.'}
+  };
+  window.fitflowT=function(k){return (dict[window.fitflowSettings.lang]||dict.ru)[k]||k};
+  window.fitflowApplyTheme=function(){document.body.classList.toggle('dark',window.fitflowSettings.theme==='dark');const b=document.getElementById('themeToggle');if(b)b.classList.toggle('on',window.fitflowSettings.theme==='dark')};
+  window.fitflowApplyStaticLanguage=function(){
+    document.documentElement.lang=window.fitflowSettings.lang;
+    document.querySelectorAll('.nav-btn').forEach(b=>{const k=b.dataset.page;b.textContent=window.fitflowT(k)});
+    const wdKeys=['weekdayMon','weekdayTue','weekdayWed','weekdayThu','weekdayFri','weekdaySat','weekdaySun'];document.querySelectorAll('#sleep .weekdays span').forEach((el,i)=>{if(wdKeys[i])el.textContent=window.fitflowT(wdKeys[i])});
+    const male=document.querySelector('#gender option[value="male"]'),female=document.querySelector('#gender option[value="female"]');if(male)male.textContent=window.fitflowT('male');if(female)female.textContent=window.fitflowT('female');
+    const todayBtn=document.getElementById('workoutTodayBtn');if(todayBtn)todayBtn.textContent=window.fitflowT('todayBtn');
+    const finLabels={financeBudget:'budget',financeStart:'from',financeEnd:'to'};Object.keys(finLabels).forEach(id=>{const l=document.querySelector('label[for="'+id+'"]');if(l)l.textContent=window.fitflowT(finLabels[id])});
+    const map={settingsTitle:'settingsTitle',settingsSubtitle:'settingsSubtitle',languageTitle:'languageTitle',languageLabel:'languageLabel',languageDesc:'languageDesc',themeTitle:'themeTitle',darkThemeLabel:'darkThemeLabel',darkThemeDesc:'darkThemeDesc',currencyTitle:'currencyTitle',currencyLabel:'currencyLabel',currencyDesc:'currencyDesc'};
+    Object.keys(map).forEach(id=>{const el=document.querySelector('[data-i18n="'+id+'"]');if(el)el.textContent=window.fitflowT(map[id])});
+    const home=document.querySelector('#home h2'),homeP=document.querySelector('#home .muted'),homeH=document.querySelector('#home h3'),homeText=document.querySelector('#home .recommendation-text');if(home)home.textContent=window.fitflowT('homeTitle');if(homeP)homeP.textContent=window.fitflowT('homeSubtitle');if(homeH)homeH.textContent='☀️ '+window.fitflowT('today');if(homeText)homeText.textContent=window.fitflowT('todayText');
+    const sleepH=document.querySelector('#sleep h1'),sleepSub=document.querySelector('#sleep .subtitle'),recH=document.querySelector('#sleep .section-title h3'),emptyH=document.querySelector('#empty h3'),emptyP=document.querySelector('#empty p');if(sleepH)sleepH.textContent=window.fitflowT('sleepTitle');if(sleepSub)sleepSub.textContent=window.fitflowT('sleepSubtitle');if(recH)recH.textContent=window.fitflowT('recommendations');if(emptyH)emptyH.textContent=window.fitflowT('chooseDay');if(emptyP)emptyP.textContent=window.fitflowT('chooseDayDesc');
+    const sleepFor=document.querySelector('#form .selected-date span');if(sleepFor)sleepFor.textContent=window.fitflowT('sleepFor');
+    const labels=[['start','wentToBed'],['end','wokeUp'],['gender','gender']];labels.forEach(([id,k])=>{const l=document.querySelector('label[for="'+id+'"]');if(l)l.textContent=window.fitflowT(k)});if(document.querySelector('#save'))document.querySelector('#save').textContent=window.fitflowT('save');if(document.querySelector('#remove'))document.querySelector('#remove').textContent=window.fitflowT('remove');
+    const wk=document.querySelector('#workouts h2'),wkSub=document.querySelector('#workouts .section-header .muted'),types=document.querySelectorAll('.workout-type'),addH=document.querySelector('#workouts .add-exercise h3'),addB=document.querySelector('#addExerciseBtn'),plan=document.querySelector('#workoutRecommendation')?.previousElementSibling,history=document.querySelector('#workoutHistory')?.parentElement?.querySelector('h3');if(wk)wk.textContent=window.fitflowT('activity');if(wkSub)wkSub.textContent=window.fitflowT('activitySubtitle');if(types[0])types[0].textContent=window.fitflowT('homeWorkout');if(types[1])types[1].textContent=window.fitflowT('gymWorkout');if(addH)addH.textContent=window.fitflowT('addExercise');if(addB)addB.textContent=window.fitflowT('add');if(history)history.textContent=window.fitflowT('last7');if(plan)plan.textContent=window.fitflowT('planToday');
+    const fh=document.querySelector('#finance h2'),fs=document.querySelector('#finance .section-header .muted'),bph=document.querySelector('#finance .finance-setup .section-title h3'),bh=document.querySelector('#finance .finance-setup .muted'),calc=document.querySelector('#financeGenerate'),dh=document.querySelector('#finance .finance-table-card .section-title h3'),dhp=document.querySelector('#finance .finance-table-card .small'),heads=document.querySelectorAll('.finance-table th'),how=document.querySelector('#financeExample1')?.parentElement?.querySelector('.section-title h3');if(fh)fh.textContent=window.fitflowT('financeTitle');if(fs)fs.textContent=window.fitflowT('financeSubtitle');if(bph)bph.textContent='💰 '+window.fitflowT('budgetPeriod');if(bh)bh.textContent=window.fitflowT('budgetHelp');if(calc)calc.textContent=window.fitflowT('calculate');const en=window.fitflowSettings.lang==='en';const bn=document.getElementById('financeBudget');if(bn)bn.placeholder=en?'1500':'1500';const eyebrow=document.getElementById('workoutEyebrow');if(eyebrow)eyebrow.textContent=window.fitflowT('activityEyebrow');const ename=document.getElementById('exerciseName');if(ename)ename.placeholder=en?'e.g. Plank':'Например, Планка';const es=document.getElementById('exerciseSets');if(es)es.placeholder=window.fitflowT('setsPlaceholder');const er=document.getElementById('exerciseReps');if(er)er.placeholder=window.fitflowT('repsPlaceholder');const tt=document.getElementById('themeToggle');if(tt)tt.setAttribute('aria-label',window.fitflowT('darkThemeLabel'));if(dh)dh.textContent='📋 '+window.fitflowT('dailyBudget');if(dhp)dhp.textContent=window.fitflowT('dailyHelp');const hk=['status','date','available','spent','carry','remaining'];heads.forEach((h,i)=>{if(hk[i])h.textContent=window.fitflowT(hk[i])});if(how)how.textContent='📌 '+window.fitflowT('howWorks');
+  };
+})();
+</script>
+<script id="fitflow-workouts-js">
+(function(){
+  const STORAGE='fitflow_workouts_v2';
+  const memoryStore={};
+  const store={
+    get(key){ try{return localStorage.getItem(key)}catch(e){return memoryStore[key]??null} },
+    set(key,value){ try{localStorage.setItem(key,value)}catch(e){memoryStore[key]=value} }
+  };
+  let initialWorkouts={};
+  try{ initialWorkouts=JSON.parse(store.get(STORAGE)||'{}')||{} }catch(e){ initialWorkouts={} }
+  const state={date:new Date(),type:'home',data:initialWorkouts,editing:null};
+  const templates={
+    home:[{name:'Отжимания',sets:3,reps:'20'},{name:'Приседания',sets:3,reps:'25'},{name:'Планка',sets:3,reps:'40 сек'}],
+    gym:[{name:'Жим лёжа',sets:3,reps:'10'},{name:'Тяга верхнего блока',sets:3,reps:'12'},{name:'Приседания со штангой',sets:3,reps:'10'}]
+  };
+  const dateKey=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+  const esc=s=>String(s).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[m]));
+  const save=()=>store.set(STORAGE,JSON.stringify(state.data));
+  const ensure=()=>{const k=dateKey(state.date);if(!state.data[k])state.data[k]={type:state.type,exercises:templates[state.type].map(x=>({...x,done:false}))};return state.data[k]};
+  const fmt=d=>d.toLocaleDateString(window.fitflowSettings?.lang==='en'?'en-US':'ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  function status(day){const total=day?.exercises?.length||0,done=day?.exercises?.filter(x=>x.done).length||0;if(!total)return 'empty';if(done===total)return 'green';if(done>0)return 'orange';return 'red'}
+  function render(){
+    const day=ensure(),total=day.exercises.length,done=day.exercises.filter(x=>x.done).length,partial=done>0&&done<total;
+    document.querySelectorAll('.workout-type').forEach(b=>b.classList.toggle('active',b.dataset.workoutType===state.type));
+    document.getElementById('workoutDateLabel').textContent=fmt(state.date);
+    document.getElementById('workoutDateSub').textContent=state.date.toLocaleDateString(window.fitflowSettings?.lang==='en'?'en-US':'ru-RU',{weekday:'long'});
+    document.getElementById('workoutSummary').innerHTML=`<div class="summary-pill">${day.type==='gym'?'🏋️ '+window.fitflowT('gymLabel'):'🏠 '+window.fitflowT('homeLabel')}</div><div class="summary-pill">✅ ${done}/${total} ${window.fitflowT('completed')}</div><div class="summary-pill">${partial?'🟠 '+window.fitflowT('partial'):done===total&&total?'🟢 '+window.fitflowT('planCompleted'):'📌 '+window.fitflowT('planLabel')}</div>`;
+    const list=document.getElementById('exerciseList');
+    list.innerHTML=day.exercises.length?day.exercises.map((x,i)=>`<div class="exercise ${x.done?'done':''}"><input class="exercise-check" type="checkbox" data-i="${i}" ${x.done?'checked':''}><div><div class="exercise-title">${esc(x.name)}</div><div class="exercise-meta">${x.sets} ${x.sets===1?window.fitflowT('set'):window.fitflowT('sets')} × ${esc(x.reps)}</div></div><div class="exercise-actions"><button type="button" title="${window.fitflowSettings.lang==='en'?'Edit':'Изменить'}" data-edit="${i}">✏️</button><button type="button" title="${window.fitflowSettings.lang==='en'?'Delete':'Удалить'}" data-del="${i}">🗑️</button></div></div>`).join(''):`<div class="empty"><div class="empty-icon">🏃</div><h3>${window.fitflowT('noExercises')}</h3><p>${window.fitflowT('addFirstExercise')}</p></div>`;
+    list.querySelectorAll('.exercise-check').forEach(c=>c.addEventListener('change',()=>{day.exercises[+c.dataset.i].done=c.checked;save();render()}));
+    list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{day.exercises.splice(+b.dataset.del,1);save();state.editing=null;render()}));
+    list.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEdit(+b.dataset.edit)));
+    const rec=document.getElementById('workoutRecommendation');
+    if(!total)rec.textContent=window.fitflowT('recommendationEmpty');else if(done===total)rec.textContent=window.fitflowT('recommendationDone');else if(done===0)rec.textContent=window.fitflowT('recommendationStart');else rec.textContent=`${window.fitflowT('recommendationProgress')} ${total-done} ${total-done===1?window.fitflowT('exercise'):window.fitflowT('exercises')}.`;
+    renderHistory();
+    renderEdit();
+  }
+  function openEdit(i){state.editing=i;renderEdit();document.getElementById('editPanel')?.scrollIntoView({behavior:'smooth',block:'nearest'})}
+  function renderEdit(){
+    const panel=document.getElementById('editPanel');if(!panel)return;if(state.editing===null){panel.hidden=true;panel.innerHTML='';return}
+    const x=ensure().exercises[state.editing];if(!x){state.editing=null;panel.hidden=true;return}
+    panel.hidden=false;panel.innerHTML=`<strong>${window.fitflowSettings.lang==='en'?'Edit exercise':'Редактирование упражнения'}</strong><div class="edit-grid" style="margin-top:10px"><input id="editName" value="${esc(x.name)}"><input id="editSets" type="number" min="1" value="${x.sets}"><input id="editReps" value="${esc(x.reps)}"><button class="primary-btn" id="saveEdit" type="button">${window.fitflowT('save')}</button><button class="danger-btn" id="cancelEdit" type="button">${window.fitflowT('cancel')}</button></div>`;
+    document.getElementById('saveEdit').onclick=()=>{const name=document.getElementById('editName').value.trim();if(!name)return alert(window.fitflowSettings.lang==='en'?'Enter an exercise name.':'Введите название упражнения.');x.name=name;x.sets=Math.max(1,+document.getElementById('editSets').value||1);x.reps=document.getElementById('editReps').value.trim()||'10';state.editing=null;save();render()};
+    document.getElementById('cancelEdit').onclick=()=>{state.editing=null;render()};
+  }
+  function renderHistory(){
+    const el=document.getElementById('workoutHistory');let out='';const today=new Date();
+    for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const x=state.data[dateKey(d)],cls=status(x);out+=`<div class="history-day ${cls} ${i===0?'today':''}" title="${fmt(d)}">${d.getDate()}<span>${cls==='green'?'✓':cls==='orange'?'~':cls==='red'?'!':''}</span></div>`}
+    el.innerHTML=out;
+  }
+  document.querySelectorAll('.workout-type').forEach(b=>b.addEventListener('click',()=>{state.type=b.dataset.workoutType;const k=dateKey(state.date);if(!state.data[k]||!state.data[k].exercises.length)state.data[k]={type:state.type,exercises:templates[state.type].map(x=>({...x,done:false}))};else state.data[k].type=state.type;save();render()}));
+  document.getElementById('workoutPrev').addEventListener('click',()=>{state.date.setDate(state.date.getDate()-1);state.editing=null;render()});
+  document.getElementById('workoutNext').addEventListener('click',()=>{state.date.setDate(state.date.getDate()+1);state.editing=null;render()});
+  document.getElementById('workoutTodayBtn').addEventListener('click',()=>{state.date=new Date();state.editing=null;render()});
+  document.getElementById('addExerciseBtn').addEventListener('click',()=>{const name=document.getElementById('exerciseName').value.trim();if(!name)return alert(window.fitflowSettings.lang==='en'?'Enter an exercise name.':'Введите название упражнения.');const sets=Math.max(1,+document.getElementById('exerciseSets').value||1),reps=document.getElementById('exerciseReps').value.trim()||'10';ensure().exercises.push({name,sets,reps,done:false});save();document.getElementById('exerciseName').value='';document.getElementById('exerciseReps').value='';render()});
+  window.fitflowRenderWorkouts=render;render();
+})();
+</script>
+</main>
+</div>
+
+<script>
+const months=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+let view=new Date(),selected=null;
+const pad=n=>String(n).padStart(2,'0');
+const key=(y,m,d)=>y+'-'+pad(m+1)+'-'+pad(d);
+const memorySleep={};
+const sleepStore={
+ get(){try{return localStorage.getItem('fitflow_sleep_records')}catch(e){return memorySleep.value??null}},
+ set(v){try{localStorage.setItem('fitflow_sleep_records',v)}catch(e){memorySleep.value=v}}
+};
+const get=()=>{try{return JSON.parse(sleepStore.get()||'{}')||{}}catch(e){return {}}};
+const put=x=>sleepStore.set(JSON.stringify(x));
+
+function mins(a,b){
+ const [ah,am]=a.split(':').map(Number),[bh,bm]=b.split(':').map(Number);
+ let x=(bh*60+bm)-(ah*60+am);if(x<0)x+=1440;return x;
+}
+function quality(h,g){
+ if(g==='male') return h<6?'bad':h>=7&&h<=9?'good':'mid';
+ return h<7?'bad':h>=8&&h<=10?'good':'mid';
+}
+function text(q){return q==='good'?window.fitflowT('good')+(window.fitflowSettings.lang==='en'?' sleep':' сон'):q==='mid'?window.fitflowT('medium')+(window.fitflowSettings.lang==='en'?' sleep':' сон'):window.fitflowT('insufficient')+(window.fitflowSettings.lang==='en'?' sleep':' сон')}
+
+function render(){
+ const y=view.getFullYear(),m=view.getMonth(),r=get();
+ const monthNames=window.fitflowSettings?.lang==='en'?['January','February','March','April','May','June','July','August','September','October','November','December']:months;document.getElementById('monthTitle').textContent=monthNames[m]+' '+y;
+ const c=document.getElementById('calendar');c.innerHTML='';
+ const first=(new Date(y,m,1).getDay()+6)%7,total=new Date(y,m+1,0).getDate();
+ for(let i=0;i<first;i++){let e=document.createElement('div');e.className='day empty';c.appendChild(e)}
+ const now=new Date(),today=key(now.getFullYear(),now.getMonth(),now.getDate());
+ for(let d=1;d<=total;d++){
+   const k=key(y,m,d),b=document.createElement('button');b.className='day';b.type='button';
+   if(k===today)b.classList.add('today');if(k===selected)b.classList.add('selected');
+   b.innerHTML=d;
+   if(r[k]){b.classList.add(r[k].quality);b.innerHTML=d+'<span class="mark">'+(r[k].quality==='good'?'✓':r[k].quality==='mid'?'~':'!')+'</span>'}
+   b.onclick=()=>selectDay(k);c.appendChild(b);
+ }
+ recommendations();
+}
+
+function selectDay(k){
+ selected=k;const r=get()[k];const [y,m,d]=k.split('-').map(Number);
+ document.getElementById('empty').classList.add('hidden');document.getElementById('form').classList.remove('hidden');
+ const monthNames=window.fitflowSettings?.lang==='en'?['January','February','March','April','May','June','July','August','September','October','November','December']:months;document.getElementById('selectedDate').textContent=d+' '+monthNames[m-1]+' '+y;
+ document.getElementById('start').value=r?.start||'';document.getElementById('end').value=r?.end||'';document.getElementById('gender').value=r?.gender||'male';
+ showResult(r);render();
+}
+function showResult(r){
+ const x=document.getElementById('result');if(!r){x.className='result hidden';x.textContent='';return}
+ x.className='result '+r.quality;x.textContent=r.hours.toFixed(1).replace('.',',')+' ч — '+text(r.quality);
+}
+window.fitflowRenderSleep=render;
+document.getElementById('prev').onclick=()=>{view.setMonth(view.getMonth()-1);render()};
+document.getElementById('next').onclick=()=>{view.setMonth(view.getMonth()+1);render()};
+document.getElementById('save').onclick=()=>{
+ if(!selected)return;const s=start.value,e=end.value,g=gender.value;if(!s||!e){alert(window.fitflowSettings.lang==='en'?'Enter sleep and wake-up times':'Укажи время сна и пробуждения');return}
+ const h=mins(s,e)/60,r=get();r[selected]={start:s,end:e,gender:g,hours:h,quality:quality(h,g)};put(r);showResult(r[selected]);render();
+};
+document.getElementById('remove').onclick=()=>{
+ if(!selected)return;const r=get();if(!r[selected])return;
+ if(confirm(window.fitflowSettings.lang==='en'?'Delete the sleep record for this day?':'Удалить запись сна за этот день?')){delete r[selected];put(r);showResult(null);render()}
+};
+function recommendations(){
+ const a=Object.values(get()),avg=a.length?a.reduce((s,x)=>s+x.hours,0)/a.length:0,bad=a.slice(-7).filter(x=>x.quality==='bad').length;
+ const T=window.fitflowT;document.getElementById('recommendations').innerHTML=
+ '<div class="rec-item"><div class="rec-label">🌙 '+(window.fitflowSettings.lang==='en'?'Today':'На сегодня')+'</div><div class="rec-value">'+(bad>=2?(window.fitflowSettings.lang==='en'?'Try to go to bed earlier today.':'Сегодня стоит лечь раньше обычного.'):(window.fitflowSettings.lang==='en'?'Try to keep a consistent bedtime.':'Старайся ложиться примерно в одно и то же время.'))+'</div></div>'+
+ '<div class="rec-item"><div class="rec-label">📊 '+(window.fitflowSettings.lang==='en'?'Average sleep':'Средний сон')+'</div><div class="rec-value">'+(avg?avg.toFixed(1).replace('.',',')+' '+(window.fitflowSettings.lang==='en'?'h':'ч'):(window.fitflowSettings.lang==='en'?'No data yet':'Пока нет данных'))+'</div></div>'+
+ '<div class="rec-item"><div class="rec-label">📅 '+(window.fitflowSettings.lang==='en'?'Records':'Записей')+'</div><div class="rec-value">'+a.length+'</div></div>';
+}
+render();
+</script>
+
+
+
+<script id="fitflow-finance-js">
+(function(){
+  const STORAGE='fitflow_finance_v2';
+  const memory={};
+  const store={get(k){try{return localStorage.getItem(k)}catch(e){return memory[k]??null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){memory[k]=v}}};
+
+  // Fixed reference rate for the offline version of FitFlow.
+  // 1 USD = 2.6125 GEL (mid-market reference, 29.08.2026).
+  const RATES={USD_TO_GEL:2.6125};
+  const convert=(amount,from,to)=>{
+    const n=Number(amount||0);
+    if(from===to)return n;
+    if(from==='USD'&&to==='GEL')return n*RATES.USD_TO_GEL;
+    if(from==='GEL'&&to==='USD')return n/RATES.USD_TO_GEL;
+    return n;
+  };
+
+  const defaults=()=>{const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate());const end=new Date(start);end.setDate(end.getDate()+19);return {budget:1500,currency:window.fitflowSettings?.currency||'GEL',start:dateKey(start),end:dateKey(end),spent:{}}};
+  const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const parse=()=>{try{const old=JSON.parse(store.get(STORAGE)||'null');return old?{...defaults(),...old,spent:old.spent||{}}:defaults()}catch(e){return defaults()}};
+  let state=parse();
+  const symbol=()=>state.currency==='USD'?'$':'₾';
+  const currencyName=()=>state.currency==='USD'?'доллар':'лари';
+  const money=n=>Number(n||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+symbol();
+  const fmt=d=>d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  function save(){store.set(STORAGE,JSON.stringify(state))}
+  function daysBetween(a,b){const A=new Date(a+'T00:00:00'),B=new Date(b+'T00:00:00');return Math.round((B-A)/86400000)+1}
+  function validate(){const budget=Number(document.getElementById('financeBudget').value);const start=document.getElementById('financeStart').value;const end=document.getElementById('financeEnd').value;const err=document.getElementById('financeError');if(!budget||budget<0||!start||!end||end<start){err.hidden=false;err.textContent=window.fitflowSettings.lang==='en'?'Check the budget and period dates.':'Проверь бюджет и даты периода.';return false}if(daysBetween(start,end)>366){err.hidden=false;err.textContent=window.fitflowSettings.lang==='en'?'The period cannot exceed 366 days.':'Период не может быть больше 366 дней.';return false}err.hidden=true;return true}
+  function calculate(){
+    const days=daysBetween(state.start,state.end);let remaining=Number(state.budget);let base=Number(state.budget)/days;let rows=[];
+    for(let i=0;i<days;i++){
+      const d=new Date(state.start+'T00:00:00');d.setDate(d.getDate()+i);const k=dateKey(d);const available=Math.max(0,base+(base*i-(Number(state.budget)-remaining)));
+      const spent=Math.max(0,Number(state.spent[k]||0));const diff=available-spent;remaining-=spent;
+      rows.push({date:k,available,spent,carry:diff,balance:remaining});
+    }
+    return rows;
+  }
+  function render(){
+    state.currency=window.fitflowSettings?.currency||state.currency||'GEL';document.getElementById('financeBudget').value=state.budget??'';document.getElementById('financeStart').value=state.start||'';document.getElementById('financeEnd').value=state.end||'';
+    const mark=symbol();document.getElementById('financeCurrencyMark').textContent=mark;
+    const ex1=document.getElementById('financeExample1'),ex2=document.getElementById('financeExample2');
+    if(ex1)ex1.textContent=window.fitflowT('example1').replaceAll('75',`75 ${mark}`).replaceAll('60',`60 ${mark}`).replaceAll('15',`15 ${mark}`);
+    if(ex2)ex2.textContent=window.fitflowT('example2').replaceAll('90',`90 ${mark}`).replaceAll('15',`15 ${mark}`);
+    const rows=calculate(),tbody=document.getElementById('financeRows');tbody.innerHTML='';
+    let totalSpent=0;rows.forEach(r=>{totalSpent+=r.spent;const tr=document.createElement('tr');const hasSpent=Object.prototype.hasOwnProperty.call(state.spent,r.date);const status=r.spent>r.available?'over':r.spent===r.available?'equal':hasSpent?'under':'empty';const carryClass=r.carry>=0?'carry-positive':'carry-negative';const balClass=r.balance>=0?'balance-positive':'balance-negative';tr.innerHTML=`<td class="finance-status ${status}" title="${status==='under'?(window.fitflowSettings.lang==='en'?'Spent below limit':'Потрачено меньше лимита'):status==='equal'?(window.fitflowSettings.lang==='en'?'Spent exactly at limit':'Потрачено ровно по лимиту'):status==='over'?(window.fitflowSettings.lang==='en'?'Spent above limit':'Потрачено больше лимита'):(window.fitflowSettings.lang==='en'?'No spending entered':'Расходы ещё не внесены')}">${status==='under'?'🟢':status==='equal'?'🟡':status==='over'?'🔴':'⚪'}</td><td class="finance-date">${fmt(new Date(r.date+'T00:00:00'))}</td><td class="finance-available">${money(r.available)}</td><td><input class="finance-spent" type="number" min="0" step="0.01" value="${hasSpent ? Number(r.spent).toFixed(2) : ''}" placeholder="0" data-finance-date="${r.date}"></td><td class="${carryClass}">${r.carry>=0?'+':''}${money(r.carry)}</td><td class="${balClass}">${money(r.balance)}</td>`;tbody.appendChild(tr)});
+    tbody.querySelectorAll('.finance-spent').forEach(input=>input.addEventListener('change',()=>{state.spent[input.dataset.financeDate]=Math.max(0,Number(input.value||0));save();render()}));
+    const T=window.fitflowT;const total=Number(state.budget),days=rows.length,base=days?total/days:0,spent=rows.reduce((s,r)=>s+r.spent,0),left=total-spent,todayKey=dateKey(new Date()),today=rows.find(r=>r.date===todayKey);
+    document.getElementById('financeRecommendations').innerHTML=`<div class="rec-item"><div class="rec-label">📅 ${T('today')}</div><div class="rec-value">${today?`${T('available')}: ${money(today.available)}.`:window.fitflowSettings.lang==='en'?'Today is outside the selected period.':'Сегодня не входит в выбранный период.'}</div></div><div class="rec-item"><div class="rec-label">💸 ${T('spent')}</div><div class="rec-value">${money(spent)}</div></div><div class="rec-item"><div class="rec-label">🎯 ${window.fitflowSettings.lang==='en'?'Tip':'Совет'}</div><div class="rec-value">${today?(today.carry>=0?window.fitflowSettings.lang==='en'?`If you spend less, ${money(today.carry)} will carry over to tomorrow.`:`Если потратишь меньше, ${money(today.carry)} перейдёт на завтра.`:window.fitflowSettings.lang==='en'?`You are over the limit by ${money(-today.carry)} — tomorrow's limit will be reduced by this amount.`:`Ты вышел за лимит на ${money(-today.carry)} — завтра лимит уменьшится на эту сумму.`):window.fitflowSettings.lang==='en'?'Choose the period you plan to live on this budget.':'Выбери период, в который планируешь прожить на бюджет.'}</div></div>`;
+  }
+
+  function convertStateCurrency(from,to){
+    if(from===to)return;
+    state.budget=convert(state.budget,from,to);
+    Object.keys(state.spent||{}).forEach(k=>state.spent[k]=convert(state.spent[k],from,to));
+    state.currency=to;
+  }
+
+  window.fitflowFinanceSetCurrency=function(next){const previous=state.currency||'GEL';if(previous!==next)convertStateCurrency(previous,next);save();render()};
+  document.getElementById('financeGenerate').addEventListener('click',()=>{if(!validate())return;state={...state,budget:Number(document.getElementById('financeBudget').value),currency:window.fitflowSettings?.currency||state.currency||'GEL',start:document.getElementById('financeStart').value,end:document.getElementById('financeEnd').value,spent:state.spent||{}};save();render()});
+  window.fitflowRenderFinance=render;render();
+})();
+</script>
+
+<script id="fitflow-settings-js">
+(function(){
+  const lang=document.getElementById('appLanguage'),currency=document.getElementById('appCurrency'),theme=document.getElementById('themeToggle');
+  function renderAll(){
+    window.fitflowApplyTheme();window.fitflowApplyStaticLanguage();
+    if(window.fitflowRenderFinance)window.fitflowRenderFinance();
+    if(window.fitflowRenderWorkouts)window.fitflowRenderWorkouts();
+    if(window.fitflowRenderSleep)window.fitflowRenderSleep();
+  }
+  lang.value=window.fitflowSettings.lang;currency.value=window.fitflowSettings.currency;window.fitflowApplyTheme();window.fitflowApplyStaticLanguage();
+  lang.addEventListener('change',()=>{window.fitflowSettings.lang=lang.value;window.fitflowSaveSettings();renderAll()});
+  theme.addEventListener('click',()=>{window.fitflowSettings.theme=window.fitflowSettings.theme==='dark'?'light':'dark';window.fitflowSaveSettings();window.fitflowApplyTheme()});
+  currency.addEventListener('change',()=>{const next=currency.value;const prev=window.fitflowSettings.currency;window.fitflowSettings.currency=next;window.fitflowSaveSettings();if(window.fitflowFinanceSetCurrency)window.fitflowFinanceSetCurrency(next);else if(window.fitflowRenderFinance)window.fitflowRenderFinance()});
+})();
+</script>
+<script id="fitflow-navigation-js">
+(function(){
+  const pages=['home','sleep','workouts','finance','settings'];
+  function showPage(name){
+    pages.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.hidden=id!==name;
+    });
+    document.querySelectorAll('.nav-btn').forEach(btn=>{
+      btn.classList.toggle('active',btn.dataset.page===name);
+    });
+    if(name==='workouts' && typeof window.fitflowRenderWorkouts==='function') window.fitflowRenderWorkouts();
+    if(name==='finance' && typeof window.fitflowRenderFinance==='function') window.fitflowRenderFinance();
+  }
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>showPage(btn.dataset.page));
+  });
+  window.fitflowShowPage=showPage;
+  showPage('sleep');
+})();
+</script>
+
+</body>
+</html>
