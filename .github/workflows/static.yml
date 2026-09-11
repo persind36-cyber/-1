@@ -36,8 +36,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # The site entry point is FitFlow_v0_2/frontend/index.html.
+          path: './FitFlow_v0_2/frontend'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
